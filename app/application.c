@@ -100,6 +100,15 @@ void application_init(void)
 
     bc_radio_init(BC_RADIO_MODE_NODE_SLEEPING);
 
+    values.temperature = NAN;
+    values.humidity = NAN;
+    values.tvoc = NAN;
+    values.pressure = NAN;
+    values.altitude = NAN;
+    values.co2_concentation = NAN;
+    values.battery_voltage = NAN;
+    values.battery_pct = NAN;
+
     // Temperature
     static bc_tmp112_t temperature;
     static event_param_t temperature_event_param = { .next_pub = 0, .channel = BC_RADIO_PUB_CHANNEL_R1_I2C0_ADDRESS_ALTERNATE };
@@ -108,12 +117,12 @@ void application_init(void)
     bc_tmp112_set_update_interval(&temperature, TMP112_UPDATE_INTERVAL);
 
     // Hudmidity
-    static humidity_tag_t humidity_tag_0_0;
-    humidity_tag_init(BC_TAG_HUMIDITY_REVISION_R1, BC_I2C_I2C0, &humidity_tag_0_0);
+ /*   static humidity_tag_t humidity_tag_0_0;
+    humidity_tag_init(BC_TAG_HUMIDITY_REVISION_R1, BC_I2C_I2C0, &humidity_tag_0_0);*/
 
     static humidity_tag_t humidity_tag_0_2;
     humidity_tag_init(BC_TAG_HUMIDITY_REVISION_R2, BC_I2C_I2C0, &humidity_tag_0_2);
-
+/*
     static humidity_tag_t humidity_tag_0_4;
     humidity_tag_init(BC_TAG_HUMIDITY_REVISION_R3, BC_I2C_I2C0, &humidity_tag_0_4);
 
@@ -124,28 +133,28 @@ void application_init(void)
     humidity_tag_init(BC_TAG_HUMIDITY_REVISION_R2, BC_I2C_I2C1, &humidity_tag_1_2);
 
     static humidity_tag_t humidity_tag_1_4;
-    humidity_tag_init(BC_TAG_HUMIDITY_REVISION_R3, BC_I2C_I2C1, &humidity_tag_1_4);
+    humidity_tag_init(BC_TAG_HUMIDITY_REVISION_R3, BC_I2C_I2C1, &humidity_tag_1_4);*/
 
     // Barometer
     static barometer_tag_t barometer_tag_0_0;
     barometer_tag_init(BC_I2C_I2C0, &barometer_tag_0_0);
-
+/*
     static barometer_tag_t barometer_tag_1_0;
     barometer_tag_init(BC_I2C_I2C1, &barometer_tag_1_0);
-
+*/
     // CO2
     static event_param_t co2_event_param = { .next_pub = 0 };
     bc_module_co2_init();
     bc_module_co2_set_update_interval(CO2_UPDATE_INTERVAL);
     bc_module_co2_set_event_handler(co2_event_handler, &co2_event_param);
-
+/*
     // VOC-LP
     static bc_tag_voc_lp_t voc_lp;
     static event_param_t voc_lp_event_param = { .next_pub = 0 };
     bc_tag_voc_lp_init(&voc_lp, BC_I2C_I2C0);
     bc_tag_voc_lp_set_event_handler(&voc_lp, voc_lp_tag_event_handler, &voc_lp_event_param);
     bc_tag_voc_lp_set_update_interval(&voc_lp, VOC_LP_TAG_UPDATE_INTERVAL);
-
+*/
     // LCD
     memset(&values, 0xff, sizeof(values));
     bc_module_lcd_init();
@@ -153,12 +162,12 @@ void application_init(void)
     bc_module_lcd_set_button_hold_time(1000);
     const bc_led_driver_t* driver = bc_module_lcd_get_led_driver();
     bc_led_init_virtual(&led_lcd_green, 1, driver, 1);
-
+/*
     // Battery
     bc_module_battery_init();
     bc_module_battery_set_event_handler(battery_event_handler, NULL);
     bc_module_battery_set_update_interval(BATTERY_UPDATE_INTERVAL);
-
+*/
     bc_radio_pairing_request("air-quality-monitor", VERSION);
 
     bc_led_pulse(&led, 2000);
@@ -193,30 +202,40 @@ static void lcd_page_render()
 
     bc_module_lcd_clear();
 
-    if ((page_index <= MAX_PAGE_INDEX) && (page_index != PAGE_INDEX_MENU))
+    //if ((page_index <= MAX_PAGE_INDEX) && (page_index != PAGE_INDEX_MENU))
+    for (int page_index = 0; page_index < MAX_PAGE_INDEX; page_index++)
     {
-        bc_module_lcd_set_font(&bc_font_ubuntu_15);
-        bc_module_lcd_draw_string(10, 5, pages[page_index].name0, true);
+        uint32_t offs_x = 10 + (page_index % 2) * 200;
+        uint32_t offs_y = 5 + ((page_index < 2) ? 0 : 120);
 
-        bc_module_lcd_set_font(&bc_font_ubuntu_28);
-        snprintf(str, sizeof(str), pages[page_index].format0, *pages[page_index].value0);
-        w = bc_module_lcd_draw_string(25, 25, str, true);
-        bc_module_lcd_set_font(&bc_font_ubuntu_15);
-        w = bc_module_lcd_draw_string(w, 35, pages[page_index].unit0, true);
+        // Name
+        bc_module_lcd_set_font(&bc_font_ubuntu_24);
+        bc_module_lcd_draw_string(offs_x, offs_y, pages[page_index].name0, true);
 
-        bc_module_lcd_set_font(&bc_font_ubuntu_15);
-        bc_module_lcd_draw_string(10, 55, pages[page_index].name1, true);
+        // Value
+        bc_module_lcd_set_font(&bc_font_ubuntu_33);
+        if (!isnan(*pages[page_index].value0))
+        {
+            snprintf(str, sizeof(str), pages[page_index].format0, *pages[page_index].value0);
+            w = bc_module_lcd_draw_string(offs_x, offs_y + 25, str, true);
+            // Unit
+            bc_module_lcd_draw_string(offs_x + w, offs_y + 25, pages[page_index].unit0, true);
+        }
 
-        bc_module_lcd_set_font(&bc_font_ubuntu_28);
-        snprintf(str, sizeof(str), pages[page_index].format1, *pages[page_index].value1);
-        w = bc_module_lcd_draw_string(25, 75, str, true);
-        bc_module_lcd_set_font(&bc_font_ubuntu_15);
-        bc_module_lcd_draw_string(w, 85, pages[page_index].unit1, true);
+        // Name
+        bc_module_lcd_set_font(&bc_font_ubuntu_24);
+        bc_module_lcd_draw_string(offs_x, offs_y + 55, pages[page_index].name1, true);
+        // Value
+        bc_module_lcd_set_font(&bc_font_ubuntu_33);
+        if (!isnan(*pages[page_index].value0))
+        {
+            snprintf(str, sizeof(str), pages[page_index].format1, *pages[page_index].value1);
+            w = bc_module_lcd_draw_string(offs_x, offs_y + 80, str, true);
+            // Unit
+            bc_module_lcd_draw_string(offs_x + w, offs_y + 80, pages[page_index].unit1, true);
+        }
     }
 
-    snprintf(str, sizeof(str), "%d/%d", page_index + 1, MAX_PAGE_INDEX + 1);
-    bc_module_lcd_set_font(&bc_font_ubuntu_13);
-    bc_module_lcd_draw_string(55, 115, str, true);
 
     bc_system_pll_disable();
 }
