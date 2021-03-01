@@ -180,6 +180,10 @@ void application_task(void)
         return;
     }
 
+    bc_log_debug("application_task");
+    bc_led_pulse(&led, 100);
+
+
     if (!lcd.mqtt)
     {
         lcd_page_render();
@@ -315,6 +319,8 @@ void lcd_event_handler(bc_module_lcd_event_t event, void *event_param)
         static uint16_t left_event_count = 0;
         left_event_count++;
         //bc_radio_pub_event_count(BC_RADIO_PUB_EVENT_LCD_BUTTON_LEFT, &left_event_count);
+        bc_led_pulse(&led_lcd_green, 100);
+
     }
     else if(event == BC_MODULE_LCD_EVENT_RIGHT_CLICK)
     {
@@ -335,6 +341,8 @@ void lcd_event_handler(bc_module_lcd_event_t event, void *event_param)
         static uint16_t right_event_count = 0;
         right_event_count++;
         //bc_radio_pub_event_count(BC_RADIO_PUB_EVENT_LCD_BUTTON_RIGHT, &right_event_count);
+        bc_led_pulse(&led_lcd_green, 100);
+
     }
     else if(event == BC_MODULE_LCD_EVENT_LEFT_HOLD)
     {
@@ -414,6 +422,13 @@ void tmp112_event_handler(bc_tmp112_t *self, bc_tmp112_event_t event, void *even
             values.temperature = value;
             bc_scheduler_plan_now(0);
         }
+        /*
+        static int i = 0;
+        values.humidity = i / 10.0f;
+        i++;
+        values.temperature = value;
+        bc_scheduler_plan_now(0);
+        */
     }
 }
 
